@@ -20,7 +20,8 @@ if len(sys.argv) <= 1:
     sys.exit(1)
 
 # Assemble prompt from command-line args
-prompt = " ".join(sys.argv[1:])
+args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
+prompt = " ".join(args)
 
 # Initialize GenAI client
 client = genai.Client(api_key=api_key)
@@ -31,12 +32,17 @@ try:
         model='gemini-2.0-flash-001',
         contents=prompt
     )
+    
+    print("\nResponse:\n" + response.text)
 
     # Output results
-    print("\nResponse:\n" + response.text)
-    print(f"\nPrompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    if "--verbose" in sys.argv:
+        print(f"User prompt:  {prompt}")
+        print(f"\nPrompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
 except Exception as e:
     print(f"ERROR: {e}")
     sys.exit(1)
+
+
