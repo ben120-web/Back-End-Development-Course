@@ -29,4 +29,5 @@ def get_file_content(working_directory, file_path):
     except Exception as exc:
         return f'Error: {exc}'
 
-
+def schema_get_file_content():
+    
