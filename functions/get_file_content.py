@@ -28,6 +28,27 @@ def get_file_content(working_directory, file_path):
 
     except Exception as exc:
         return f'Error: {exc}'
-
-def schema_get_file_content():
     
+def schema_get_file_content(types):
+    schema_get_file_content = types.FunctionDeclaration(
+        name = "get_file_content",
+        description = "Read the content of a file.",
+        parameters = types.Schema(
+            type = types.Type.OBJECT,
+            properties = {
+                "file_path": types.Schema(
+                    type = types.Type.STRING,
+                    description = "The file to read content from",
+                )
+            },
+            required = ["file_path"],
+        )
+    )
+    
+    available_functions = types.Tool(
+        function_declarations = [
+            schema_get_file_content,
+        ]
+    )
+    
+    return schema_get_file_content, available_functions

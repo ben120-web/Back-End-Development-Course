@@ -3,7 +3,8 @@ import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from functions.get_files_info import schema_get_file_info
+from functions.combine_functions import combine_all_function_declarations
+from functions.call_function import call_function
 
 # Load environment variables from .env
 load_dotenv()
@@ -36,11 +37,14 @@ You are a helpful AI coding agent.
 When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
 
 - List files and directories
+- Read file contents
+- Execute Python files with optional arguments
+- Write or overwrite files
 
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
 """
 
-schema_get_files_info, available_functions = schema_get_file_info(types)
+available_functions = combine_all_function_declarations(types)
 
 # Generate response
 try:
@@ -54,9 +58,19 @@ try:
     
     print("\nResponse:")
     function_calls = getattr(response, "function_calls", None) or []
+    
     if function_calls:
         for function_call in function_calls:
-            print(f"Calling function: {function_call.name}({function_call.args})")
+            
+            fc_result = call_function(function_call, verbose="--verbose" in sys.argv)
+
+            try:
+                payload = fc_result.parts[0].function_response.response
+            except Exception:
+                raise RuntimeError("Function call result missing function_response.response")
+
+            result_text = payload.get("result", "")
+            print(result_text)  # always print so tests can match output
     else:
         print(response.text or "")
 

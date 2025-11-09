@@ -27,23 +27,28 @@ def write_file(working_directory, file_path, content):
 
 def schema_write_file(types):
     
-    schema_get_files_info = types.FunctionDeclaration(
-        name="get_files_info",
-        description="Lists files in the specified directory along with their sizes, constrained to the working directory.",
+    schema_write_file = types.FunctionDeclaration(
+        name="write_file",
+        description="Write or overwrite a file with provided content",
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
-                "directory": types.Schema(
+                "file_path": types.Schema(
                     type=types.Type.STRING,
-                    description="The directory to list files from, relative to the working directory. If not provided, lists files in the working directory itself.",
+                    description="Relative path to the file to write or overwrite.",
+                ),
+                "content": types.Schema(
+                    type = types.Type.STRING,
+                    description = "Content to write to the file", 
                 ),
             },
+            required = ["file_path", "content"],
         ),
     )
     
     available_functions = types.Tool(
     function_declarations=[
-        schema_get_files_info,
+        schema_write_file,
     ]
 )
-    return schema_get_files_info, available_functions
+    return schema_write_file, available_functions

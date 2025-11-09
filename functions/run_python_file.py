@@ -35,9 +35,6 @@ def run_python_file(working_directory, file_path, args=None):
         stdout_text = result.stdout or ""
         stderr_text = result.stderr or ""
 
-        if result.returncode == 0 and not stdout_text and not stderr_text:
-            return "No output produced."
-
         lines = []
         if result.returncode != 0:
             lines.append(f'Error: Process exited with code {result.returncode}')
@@ -49,6 +46,32 @@ def run_python_file(working_directory, file_path, args=None):
 
     except Exception as exc:
         return f"Error: executing Python file: {exc}"
-
-def schema_run_python_file():
     
+def schema_run_python_file(types):
+    schema_run_python_file = types.FunctionDeclaration(
+    name = "run_python_file",
+    description = "Run a Python File",
+    parameters = types.Schema(
+        type = types.Type.OBJECT,
+        properties = {
+            "file_path": types.Schema(
+                type = types.Type.STRING,
+                description = "Runs a given python file",
+            ),
+            "args": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(type=types.Type.STRING),
+                description = "Optional CLI argument"
+            ),
+        },
+        required = ["file_path"],
+    )
+)
+    
+    available_functions = types.Tool(
+        function_declarations = [
+            schema_run_python_file,
+        ]
+    )
+    
+    return schema_run_python_file, available_functions
