@@ -46,23 +46,43 @@ All paths you provide should be relative to the working directory. You do not ne
 
 available_functions = combine_all_function_declarations(types)
 
+messages = [prompt]
+
 # Generate response
 try:
-    response = client.models.generate_content(
-        model='gemini-2.0-flash-001',
-        contents=prompt,
-        config=types.GenerateContentConfig(tools=[available_functions], 
-                                           system_instruction=system_prompt),
+    
+    max_iterations = 20
+    
+    for iteration in range(max_iterations):
         
-    )
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-001',
+            contents=messages,
+            config=types.GenerateContentConfig(tools=[available_functions], 
+                                            system_instruction=system_prompt),
+            
+        )
+        
+        # Update the next prompt, with the response of the model.
+        for candidate in response.candidates:
+            messages.append(candidate.content)
+            
+        
+        if response.text and not response.function_calls:
+            print("Final response:")
+            print(response.text)
+            break  # Exit the loop
+        
+        # If not done, we must have function calls to handle.
+        function_calls = getattr(response, "function_calls", None) or []
     
-    print("\nResponse:")
-    function_calls = getattr(response, "function_calls", None) or []
-    
-    if function_calls:
+        function_responses = []
+        
         for function_call in function_calls:
             
+            
             fc_result = call_function(function_call, verbose="--verbose" in sys.argv)
+            function_responses.append(fc_result.parts[0])
 
             try:
                 payload = fc_result.parts[0].function_response.response
@@ -71,15 +91,19 @@ try:
 
             result_text = payload.get("result", "")
             print(result_text)  # always print so tests can match output
-    else:
-        print(response.text or "")
-
-    # Output results
-    if "--verbose" in sys.argv:
-        print(f"User prompt:  {prompt}")
-        print(f"\nPrompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-
+        
+        if function_responses:    
+            messages.append(types.Content(
+                role = "user",
+                parts = function_responses
+            ))
+                            
+        # Output results
+        if "--verbose" in sys.argv:
+            print(f"User prompt:  {prompt}")
+            print(f"\nPrompt tokens: {response.usage_metadata.prompt_token_count}")
+            print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+                
 except Exception as e:
     print(f"ERROR: {e}")
     sys.exit(1)
