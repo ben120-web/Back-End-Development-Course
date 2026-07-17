@@ -1,4 +1,4 @@
-"""CLI for the sandboxed Gemini coding agent."""
+"""CLI for the workspace-bounded Gemini coding agent."""
 
 import argparse
 import os
@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from config import DEFAULT_MODEL
 from functions.call_function import call_function
 from functions.combine_functions import combine_all_function_declarations
 
@@ -23,12 +24,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workspace", default="./calculator")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--max-iterations", type=int, default=20)
+    parser.add_argument(
+        "--model",
+        default=os.environ.get("GEMINI_MODEL", DEFAULT_MODEL),
+        help="Stable Gemini model identifier (or set GEMINI_MODEL)",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
-    args = parse_args()
     load_dotenv()
+    args = parse_args()
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise SystemExit("GEMINI_API_KEY is not set")
@@ -39,7 +45,7 @@ def main() -> int:
 
     for _ in range(args.max_iterations):
         response = client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model=args.model,
             contents=messages,
             config=types.GenerateContentConfig(tools=[tools], system_instruction=SYSTEM_PROMPT),
         )

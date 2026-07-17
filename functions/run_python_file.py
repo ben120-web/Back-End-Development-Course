@@ -1,9 +1,27 @@
 """Agent tool for time-bounded Python subprocess execution."""
 
+import os
 import subprocess
 import sys
 
+from config import MAX_PROCESS_OUTPUT_LENGTH
 from functions.path_security import resolve_in_workspace
+
+_SAFE_ENVIRONMENT_KEYS = ("LANG", "LC_ALL", "PATH", "SYSTEMROOT", "TEMP", "TMP", "TMPDIR", "WINDIR")
+
+
+def _child_environment() -> dict[str, str]:
+    """Keep interpreter essentials while withholding credentials from child code."""
+    environment = {key: os.environ[key] for key in _SAFE_ENVIRONMENT_KEYS if key in os.environ}
+    environment.update({"PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"})
+    return environment
+
+
+def _bounded_output(value: str) -> str:
+    if len(value) <= MAX_PROCESS_OUTPUT_LENGTH:
+        return value.rstrip()
+    omitted = len(value) - MAX_PROCESS_OUTPUT_LENGTH
+    return f"{value[:MAX_PROCESS_OUTPUT_LENGTH].rstrip()}\n[truncated {omitted} characters]"
 
 
 def run_python_file(working_directory: str, file_path: str, args: list[str] | None = None) -> str:
@@ -20,10 +38,11 @@ def run_python_file(working_directory: str, file_path: str, args: list[str] | No
             text=True,
             check=False,
             timeout=30,
+            env=_child_environment(),
         )
         parts = [f"EXIT_CODE: {result.returncode}"]
-        parts.append(f"STDOUT: {(result.stdout or '').rstrip()}")
-        parts.append(f"STDERR: {(result.stderr or '').rstrip()}")
+        parts.append(f"STDOUT: {_bounded_output(result.stdout or '')}")
+        parts.append(f"STDERR: {_bounded_output(result.stderr or '')}")
         return "\n".join(parts)
     except subprocess.TimeoutExpired:
         return "Error: Python process exceeded the 30-second timeout"

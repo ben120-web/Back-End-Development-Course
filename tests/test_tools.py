@@ -32,3 +32,27 @@ def test_python_execution_is_bounded(tmp_path: Path) -> None:
     result = run_python_file(str(tmp_path), "hello.py")
     assert "EXIT_CODE: 0" in result
     assert "STDOUT: hello" in result
+
+
+def test_python_execution_does_not_inherit_api_credentials(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "must-not-reach-child")
+    script = tmp_path / "environment.py"
+    script.write_text(
+        "import os\nprint(os.environ.get('GEMINI_API_KEY', 'not-set'))\n",
+        encoding="utf-8",
+    )
+
+    result = run_python_file(str(tmp_path), "environment.py")
+
+    assert "must-not-reach-child" not in result
+    assert "STDOUT: not-set" in result
+
+
+def test_python_output_is_truncated(tmp_path: Path) -> None:
+    script = tmp_path / "noisy.py"
+    script.write_text("print('x' * 12000)\n", encoding="utf-8")
+
+    result = run_python_file(str(tmp_path), "noisy.py")
+
+    assert "[truncated" in result
+    assert len(result) < 10200
