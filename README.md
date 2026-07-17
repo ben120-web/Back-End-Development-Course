@@ -12,8 +12,17 @@ This began as a Boot.dev backend exercise and has been retained as a focused
 example of agent orchestration and tool-boundary design.
 
 Every change is linted, format-checked, tested and built as an installable
-package. Pushing a semantic version tag such as `v0.2.0` publishes the wheel and
-source archive on a GitHub release; it does not publish to PyPI.
+package. The `v1.0.0` tag publishes the verified wheel and source archive on a
+GitHub release; it does not publish to PyPI.
+
+## Version 1.0.0
+
+The first stable portfolio release provides an installable `workspace-agent`
+CLI, configurable model selection, real-path filesystem boundaries, a scrubbed
+child-process environment, output limits, timeouts, adversarial boundary tests,
+CodeQL, dependency review, Dependabot and tag-gated delivery. Six unit tests,
+Ruff checks, package construction and an installed-CLI smoke test form the
+release gate.
 
 ## Run
 
