@@ -1,8 +1,8 @@
-from pkg.calculator import Calculator
 # python
-import os
-import sys
 import unittest
+
+from pkg.calculator import Calculator
+
 
 class TestCalculator(unittest.TestCase):
     def setUp(self):

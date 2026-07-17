@@ -1,109 +1,66 @@
+"""CLI for the sandboxed Gemini coding agent."""
+
+import argparse
 import os
-import sys
+
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from functions.combine_functions import combine_all_function_declarations
+
 from functions.call_function import call_function
+from functions.combine_functions import combine_all_function_declarations
 
-# Load environment variables from .env
-load_dotenv()
-
-# Retrieve Gemini API key
-api_key = os.environ.get("GEMINI_API_KEY")
-
-# Fail fast if key not found
-if not api_key:
-    print("ERROR: GEMINI_API_KEY not found in environment.")
-    sys.exit(1)
-
-# Check if prompt argument is provided
-if len(sys.argv) <= 1:
-    print("ERROR: No prompt provided. Please provide a prompt as a command-line argument.")
-    sys.exit(1)
-
-# Assemble prompt from command-line args
-args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
-prompt = " ".join(args)
-
-# Initialize GenAI client
-client = genai.Client(api_key=api_key)
-
-
-# Set a system prompt.
-system_prompt = """
-You are a helpful AI coding agent.
-
-When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
-
-- List files and directories
-- Read file contents
-- Execute Python files with optional arguments
-- Write or overwrite files
-
-All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
+SYSTEM_PROMPT = """You are a coding agent operating inside a restricted workspace.
+Plan briefly, inspect relevant files, make the smallest useful change, and run
+available tests. All tool paths must be relative to the workspace. Never attempt
+to bypass the workspace boundary or access credentials.
 """
 
-available_functions = combine_all_function_declarations(types)
 
-messages = [prompt]
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("prompt", nargs="+", help="Task for the coding agent")
+    parser.add_argument("--workspace", default="./calculator")
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--max-iterations", type=int, default=20)
+    return parser.parse_args()
 
-# Generate response
-try:
-    
-    max_iterations = 20
-    
-    for iteration in range(max_iterations):
-        
+
+def main() -> int:
+    args = parse_args()
+    load_dotenv()
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise SystemExit("GEMINI_API_KEY is not set")
+
+    client = genai.Client(api_key=api_key)
+    tools = combine_all_function_declarations(types)
+    messages: list[types.Content | str] = [" ".join(args.prompt)]
+
+    for _ in range(args.max_iterations):
         response = client.models.generate_content(
-            model='gemini-2.0-flash-001',
+            model="gemini-2.0-flash-001",
             contents=messages,
-            config=types.GenerateContentConfig(tools=[available_functions], 
-                                            system_instruction=system_prompt),
-            
+            config=types.GenerateContentConfig(tools=[tools], system_instruction=SYSTEM_PROMPT),
         )
-        
-        # Update the next prompt, with the response of the model.
-        for candidate in response.candidates:
-            messages.append(candidate.content)
-            
-        
+        messages.extend(candidate.content for candidate in response.candidates)
         if response.text and not response.function_calls:
-            print("Final response:")
             print(response.text)
-            break  # Exit the loop
-        
-        # If not done, we must have function calls to handle.
-        function_calls = getattr(response, "function_calls", None) or []
-    
-        function_responses = []
-        
-        for function_call in function_calls:
-            
-            
-            fc_result = call_function(function_call, verbose="--verbose" in sys.argv)
-            function_responses.append(fc_result.parts[0])
+            return 0
 
-            try:
-                payload = fc_result.parts[0].function_response.response
-            except Exception:
-                raise RuntimeError("Function call result missing function_response.response")
+        function_responses = [
+            call_function(call, args.verbose, args.workspace)
+            for call in response.function_calls or []
+        ]
+        if function_responses:
+            messages.append(
+                types.Content(role="user", parts=[r.parts[0] for r in function_responses])
+            )
+        if args.verbose and response.usage_metadata:
+            print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
 
-            result_text = payload.get("result", "")
-            print(result_text)  # always print so tests can match output
-        
-        if function_responses:    
-            messages.append(types.Content(
-                role = "user",
-                parts = function_responses
-            ))
-                            
-        # Output results
-        if "--verbose" in sys.argv:
-            print(f"User prompt:  {prompt}")
-            print(f"\nPrompt tokens: {response.usage_metadata.prompt_token_count}")
-            print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-                
-except Exception as e:
-    print(f"ERROR: {e}")
-    sys.exit(1)
+    raise SystemExit(f"Agent exceeded {args.max_iterations} iterations")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

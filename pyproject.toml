@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sandboxed-coding-agent"
+version = "0.1.0"
+description = "Tool-using coding agent with bounded filesystem access"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["google-genai>=1.12,<2", "python-dotenv>=1.1,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "ruff>=0.9,<1"]
+
+[tool.setuptools.packages.find]
+include = ["functions*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

@@ -1,5 +1,6 @@
 # calculator.py
 
+
 class Calculator:
     def __init__(self):
         self.operators = {
@@ -37,8 +38,8 @@ class Calculator:
             else:
                 try:
                     values.append(float(token))
-                except ValueError:
-                    raise ValueError(f"invalid token: {token}")
+                except ValueError as error:
+                    raise ValueError(f"invalid token: {token}") from error
 
         while operators:
             self._apply_operator(operators, values)
