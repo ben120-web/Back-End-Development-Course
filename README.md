@@ -1,11 +1,17 @@
 # Sandboxed Coding Agent
 
+[![CI](https://github.com/ben120-web/Back-End-Development-Course/actions/workflows/ci.yml/badge.svg)](https://github.com/ben120-web/Back-End-Development-Course/actions/workflows/ci.yml)
+
 A compact tool-using coding agent built with the Google Gen AI SDK. The model
 can inspect, edit and execute Python inside an explicitly selected workspace;
 all filesystem tools resolve real paths and reject traversal and symlink escapes.
 
 This began as a Boot.dev backend exercise and has been retained as a focused
 example of agent orchestration and tool-boundary design.
+
+Every change is linted, format-checked, tested and built as an installable
+package. Pushing a semantic version tag such as `v0.2.0` publishes the wheel and
+source archive on a GitHub release; it does not publish to PyPI.
 
 ## Run
 
