@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Ben Russell" }]
-dependencies = ["google-genai>=1.12,<2", "python-dotenv>=1.1,<2"]
+dependencies = ["google-genai>=1.12,<3", "python-dotenv>=1.1,<2"]
 
 [project.scripts]
 workspace-agent = "main:main"
